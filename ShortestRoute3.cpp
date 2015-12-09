@@ -23,6 +23,7 @@ class Leg {
 public:
   Leg(const char startCity[], const char endCity[], const int distance);
   Leg& operator=(const Leg& l);
+  friend bool operator< (const Leg&, const Leg&);
   friend ostream& operator<<(ostream& out, const Leg& leg);
   friend ostream& operator<<(ostream&, const Route&);
   friend Route;
@@ -42,6 +43,12 @@ Leg & Leg::operator=(const Leg & l)
   return *this;
 }
 
+bool operator<(const Leg& l1, const Leg& l2) {
+  if(l1.distance<l2.distance)
+    return true;
+   else
+    return false;
+}
 class Route {
   const Leg** const legs;
   const int nTimes;
@@ -69,7 +76,10 @@ Route::Route(const Route& r, const Leg& l)
   for (int i = 0; i < r.nTimes; i++) {
     legs[i] = r.legs[i];
   }
-
+  if (r.legs[r.nTimes-1]->endCity != l.startCity) {
+    delete[] legs;
+    throw "Leg does not match route.";
+  }
   legs[r.nTimes] = &l;
 }
 
@@ -99,48 +109,79 @@ vector<Leg> ShortestRoute::allLegs;
 
 const Route ShortestRoute::getAnyRoute(const string from, const string to)
 {
-  bool found = false;
-  int indexOfLeg = 0;
+  
   int size = allLegs.size();
-  for (int i = 0; i < size && !found; i++) {
+  for (int i = 0; i < size; i++) {
     if (allLegs[i].endCity == to) {
-      indexOfLeg = i;
-      found = true;
+      if (allLegs[i].startCity == from)
+      {
+        return Route(allLegs[i]);
+      }
+      else {
+        return Route(getAnyRoute(from, allLegs[i].startCity), allLegs[i]);
+ 
+      }
+      
     }
   }
-  if (allLegs[indexOfLeg].startCity == from) {
-    return Route(allLegs[indexOfLeg]);
-  }
-  else {
-    return Route(getAnyRoute(from, allLegs[indexOfLeg].startCity), allLegs[indexOfLeg]);
-  }
+  throw "Could not find route.";
+  //if (allLegs[indexOfLeg].startCity == from) {
+  //  return Route(allLegs[indexOfLeg]);
+  //}
+  //else {
+  //  return Route(getAnyRoute(from, allLegs[indexOfLeg].startCity), allLegs[indexOfLeg]);
+  //}
 }
 
 const Route ShortestRoute::getShortestRoute(const string from, const string to)
 {
  
-  vector<int> indexOfLegs; //All valid legs leading to "to"
+  vector<int> indexOflegs; //All valid legs leading to "to"
   int size = allLegs.size();
   for (int i = 0; i < size; i++) {
     if (allLegs[i].endCity == to) {
-      indexOfLegs.push_back(i);
+      indexOflegs.push_back(i);
     }
   }
-  int indexOfShortestLeg = indexOfLegs[0];
-  size = indexOfLegs.size();
-  if(indexOfLegs.size() != 1){
+  
+  size = indexOflegs.size();
+  if (indexOflegs.size() > 0) {
+    int shortestLeg = indexOflegs[0];
     for (int i = 1; i < size; i++) {
-      if (allLegs[indexOfLegs[i]].distance < allLegs[indexOfShortestLeg].distance) {
-        indexOfShortestLeg = indexOfLegs[i];
+      if (allLegs[indexOflegs[i]] < allLegs[shortestLeg]) {
+        shortestLeg = indexOflegs[i];
       }
     }
+    if (allLegs[shortestLeg].startCity == from) {
+      //Route r(shortestLeg);
+      return Route(allLegs[shortestLeg]);
+    }
+    else {
+      return Route(getShortestRoute(from, allLegs[shortestLeg].startCity), allLegs[shortestLeg]);
+    }
   }
-  if (allLegs[indexOfShortestLeg].startCity == from) {
-    return Route(allLegs[indexOfShortestLeg]);
-  }
-  else {
-    return Route(getShortestRoute(from, allLegs[indexOfShortestLeg].startCity), allLegs[indexOfShortestLeg]);
-  }
+  throw "Could not find route.";
+  //for (int i = 0; i < size; i++) {
+  //  if (allLegs[i].endCity == to) {
+  //    legs.push_back(allLegs[i]);
+  //  }
+  //}
+  //Leg shortestLeg = legs[0];
+  //size = legs.size();
+  //if(legs.size() != 1){
+  //  for (int i = 1; i < size; i++) {
+  //    if (legs[i] < shortestLeg) {
+  //      shortestLeg = legs[i];
+  //    }
+  //  }
+  //}
+  //if (shortestLeg.startCity == from) {
+  //  //Route r(shortestLeg);
+  //  return Route(shortestLeg);
+  //}
+  //else {
+  //  return Route(getShortestRoute(from, shortestLeg.startCity), shortestLeg);
+  //}
 }
 
 int main() {
@@ -248,7 +289,6 @@ void ShortestRoute::initialize()
   allLegs.push_back(Leg("Detroit", "Buffalo", 255));
   allLegs.push_back(Leg("Licoln", "Des Moines", 185));
   allLegs.push_back(Leg("Rapid City", "Des Moines", 625 ));
- // allLegs.push_back(Leg("Oklahoma City", "Little Rock", 340));
   allLegs.push_back(Leg("Oklahoma City", "Kansas City", 354)); 
   allLegs.push_back(Leg("Little Rock", "Jackson", 260));
   allLegs.push_back(Leg("Louisville", "Columbus", 210));
